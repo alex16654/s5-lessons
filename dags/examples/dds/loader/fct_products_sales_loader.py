@@ -7,9 +7,9 @@ from psycopg import Connection
 from psycopg.rows import class_row
 from pydantic import BaseModel
 
-from examples.dds.deployer.bonus_event_repository import BonusEventRepository
-from examples.dds.deployer.order_repositories import OrderDdsRepository
-from examples.dds.deployer.product_loader import ProductDdsObj, ProductDdsRepository
+from examples.dds.loader.bonus_event_repository import BonusEventRepository
+from examples.dds.loader.order_repositories import OrderDdsRepository
+from examples.dds.loader.product_loader import ProductDdsObj, ProductDdsRepository
 
 from examples.dds.dds_settings_repository import DdsEtlSettingsRepository, EtlSetting
 
@@ -100,13 +100,13 @@ class FctProductsLoader:
 
     _LOG_THRESHOLD = 100
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw_events = BonusEventRepository()
         self.dds_orders = OrderDdsRepository()
         self.dds_products = ProductDdsRepository()
         self.dds_facts = FctProductDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
     def parse_order_products(self,
                              order_raw: BonusPaymentJsonObj,
@@ -114,24 +114,24 @@ class FctProductsLoader:
                              products: Dict[str, ProductDdsObj]
                              ) -> Tuple[bool, List[FctProductDdsObj]]:
 
-        res = []
+        result = []
 
-        for p_json in order_raw.product_payments:
-            if p_json.product_id not in products:
+        for object in order_raw.product_payments:
+            if object.product_id not in products:
                 return (False, [])
 
-            t = FctProductDdsObj(id=0,
+            item = FctProductDdsObj(id=0,
                                  order_id=order_id,
-                                 product_id=products[p_json.product_id].id,
-                                 count=p_json.quantity,
-                                 price=p_json.price,
-                                 total_sum=p_json.product_cost,
-                                 bonus_grant=p_json.bonus_grant,
-                                 bonus_payment=p_json.bonus_payment
+                                 product_id=products[object.product_id].id,
+                                 count=object.quantity,
+                                 price=object.price,
+                                 total_sum=object.product_cost,
+                                 bonus_grant=object.bonus_grant,
+                                 bonus_payment=object.bonus_payment
                                  )
-            res.append(t)
+            result.append(item)
 
-        return (True, res)
+        return (True, result)
 
     def load_product_facts(self):
         with self.dwh.connection() as conn:
@@ -142,18 +142,17 @@ class FctProductsLoader:
                 print("here 2 ", str(wf_setting))
 
             last_loaded_id = wf_setting.workflow_settings[self.LAST_LOADED_ID_KEY]
-            log.info(f"Starting load from: {last_loaded_id}")
+            log.info(f"load from: {last_loaded_id}")
 
             load_queue = self.raw_events.load_raw_events(conn, self.PAYMENT_EVENT, last_loaded_id)
             load_queue.sort(key=lambda x: x.id)
-            log.info(f"Found {len(load_queue)} events to load.")
+            log.info(f"Founded {len(load_queue)} events to load.")
 
             products = self.dds_products.list_products(conn)
             prod_dict = {}
             for p in products:
                 prod_dict[p.product_id] = p
-
-            proc_cnt = 0
+            cnt = 0
             for payment_raw in load_queue:
                 payment_obj = BonusPaymentJsonObj(json.loads(payment_raw.event_value))
                 order = self.dds_orders.get_order(conn, payment_obj.order_id)
@@ -171,8 +170,8 @@ class FctProductsLoader:
                 wf_setting.workflow_settings[self.LAST_LOADED_ID_KEY] = payment_raw.id
                 self.settings_repository.save_setting(conn, wf_setting)
 
-                proc_cnt += 1
-                if proc_cnt % self._LOG_THRESHOLD == 0:
-                    log.info(f"Processing events {proc_cnt} out of {len(load_queue)}.")
+                cnt += 1
+                if cnt % self._LOG_THRESHOLD == 0:
+                    log.info(f"Processing events {cnt} out of {len(load_queue)}.")
 
-            log.info(f"Processed {proc_cnt} events out of {len(load_queue)}.")
+            log.info(f"Processed {cnt} events out of {len(load_queue)}.")

@@ -71,16 +71,16 @@ class UserDdsRepository:
             obj = cur.fetchone()
         return obj
 
-##------------------------------------------------------------------
+
 class UserLoader:
     WF_KEY = "users_raw_to_dds_workflow"
     LAST_LOADED_ID_KEY = "last_loaded_user_id"
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw = UserRawRepository()
         self.dds = UserDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
     def parse_users(self, raws: List[UserJsonObj]) -> List[UserDdsObj]:
         res = []

@@ -46,8 +46,15 @@ class RestaurantDdsRepository:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                    INSERT INTO dds.dm_restaurants(restaurant_id, restaurant_name, active_from, active_to)
-                    VALUES (%(restaurant_id)s, %(restaurant_name)s, %(active_from)s, %(active_to)s);
+                    INSERT INTO dds.dm_restaurants(
+                        restaurant_id, 
+                        restaurant_name, 
+                        active_from, 
+                        active_to)
+                    VALUES (%(restaurant_id)s, 
+                        %(restaurant_name)s, 
+                        %(active_from)s, 
+                        %(active_to)s);
                 """,
                 {
                     "restaurant_id": restaurant.restaurant_id,
@@ -80,11 +87,11 @@ class RestaurantLoader:
     WF_KEY = "restaurants_raw_to_dds_workflow"
     LAST_LOADED_ID_KEY = "last_loaded_id"
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw = RestaurantRawRepository()
         self.dds = RestaurantDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
     def parse_restaurants(self, raws: List[RestaurantJsonObj]) -> List[RestaurantDdsObj]:
         res = []
@@ -111,10 +118,10 @@ class RestaurantLoader:
             load_queue = self.raw.load_raw_restaurants(conn, last_loaded_id)
             load_queue.sort(key=lambda x: x.id)
             restaurants_to_load = self.parse_restaurants(load_queue)
-            for r in restaurants_to_load:
-                existing = self.dds.get_restaurant(conn, r.restaurant_id)
+            for restaurant in restaurants_to_load:
+                existing = self.dds.get_restaurant(conn, restaurant.restaurant_id)
                 if not existing:
-                    self.dds.insert_restaurant(conn, r)
+                    self.dds.insert_restaurant(conn, restaurant)
 
-                wf_setting.workflow_settings[self.LAST_LOADED_ID_KEY] = r.id
+                wf_setting.workflow_settings[self.LAST_LOADED_ID_KEY] = restaurant.id
                 self.settings_repository.save_setting(conn, wf_setting)

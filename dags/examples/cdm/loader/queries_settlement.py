@@ -1,16 +1,5 @@
-from lib import PgConnect
-
-
-class SettlementRepository:
-    def __init__(self, pg: PgConnect) -> None:
-        self._db = pg
-
-    def load_settlement_by_days(self) -> None:
-        with self._db.client() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-;WITH order_sums AS (
+SETTLEMENT_REPORT = """
+WITH order_sums AS (
     SELECT
         r.restaurant_id                 AS restaurant_id,
         r.restaurant_name               AS restaurant_name,
@@ -63,14 +52,3 @@ SET
     order_processing_fee = EXCLUDED.order_processing_fee,
     restaurant_reward_sum = EXCLUDED.restaurant_reward_sum;
                     """
-                )
-                conn.commit()
-
-
-class SettlementReportLoader:
-
-    def __init__(self, pg: PgConnect) -> None:
-        self.repository = SettlementRepository(pg)
-
-    def load_report_by_days(self):
-        self.repository.load_settlement_by_days()

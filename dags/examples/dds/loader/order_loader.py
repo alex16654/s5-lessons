@@ -2,10 +2,10 @@ import json
 from datetime import datetime
 from lib import PgConnect
 
-from examples.dds.deployer.restaurant_loader import RestaurantDdsRepository
-from examples.dds.deployer.timestamp_loader import TimestampDdsRepository
-from examples.dds.deployer.user_loader import UserDdsRepository
-from examples.dds.deployer.order_repositories import OrderJsonObj, OrderRawRepository, OrderDdsObj, OrderDdsRepository
+from examples.dds.loader.restaurant_loader import RestaurantDdsRepository
+from examples.dds.loader.timestamp_loader import TimestampDdsRepository
+from examples.dds.loader.user_loader import UserDdsRepository
+from examples.dds.loader.order_repositories import OrderJsonObj, OrderRawRepository, OrderDdsObj, OrderDdsRepository
 
 from examples.dds.dds_settings_repository import DdsEtlSettingsRepository, EtlSetting
 
@@ -13,16 +13,20 @@ class OrderLoader:
     WF_KEY = "orders_raw_to_dds_workflow"
     LAST_LOADED_ID_KEY = "last_loaded_id"
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw = OrderRawRepository()
         self.dds_users = UserDdsRepository()
         self.dds_timestamps = TimestampDdsRepository()
         self.dds_restaurants = RestaurantDdsRepository()
         self.dds_orders = OrderDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
-    def parse_order(self, order_raw: OrderJsonObj, restaurant_id: int, timestamp_id: int, user_id: int) -> OrderDdsObj:
+    def parse_order(self,
+                    order_raw: OrderJsonObj,
+                    restaurant_id: int,
+                    timestamp_id: int,
+                    user_id: int) -> OrderDdsObj:
         order_json = json.loads(order_raw.object_value)
 
         t = OrderDdsObj(id=0,

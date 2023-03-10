@@ -1,17 +1,16 @@
 import logging
 import pendulum
 from airflow import DAG
-from airflow.models.variable import Variable
 from airflow.decorators import task
 from lib import ConnectionBuilder
 
-from examples.dds.deployer.user_loader import UserLoader
-from examples.dds.deployer.restaurant_loader import RestaurantLoader
-from examples.dds.deployer.timestamp_loader import TimestampLoader
-from examples.dds.deployer.product_loader import ProductLoader
-from examples.dds.deployer.order_loader import OrderLoader
-from examples.dds.deployer.fct_products_sales_loader import FctProductsLoader
-from examples.dds.dds_settings_repository import DdsEtlSettingsRepository
+from examples.dds.loader.user_loader import UserLoader
+from examples.dds.loader.restaurant_loader import RestaurantLoader
+from examples.dds.loader.timestamp_loader import TimestampLoader
+from examples.dds.loader.product_loader import ProductLoader
+from examples.dds.loader.order_loader import OrderLoader
+from examples.dds.loader.fct_products_sales_loader import FctProductsLoader
+
 
 log = logging.getLogger(__name__)
 
@@ -20,45 +19,43 @@ with DAG(
     schedule_interval='0/30 * * * *',
     start_date=pendulum.datetime(2023, 1, 31, tz="UTC"),
     catchup=False,
-    tags=['sprint5', 'dds', 'schema', 'ddl'],
-    is_paused_upon_creation=False
+    tags=['sprint5', 'dds', 'project', 'ddl'],
+    is_paused_upon_creation=True
 ) as dag:
     dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
-    settings_repository = DdsEtlSettingsRepository()
-
 
     @task(task_id="dm_users_load")
-    def load_dm_users(ds=None, **kwargs):
-        user_loader = UserLoader(dwh_pg_connect, settings_repository)
+    def load_dm_users():
+        user_loader = UserLoader(dwh_pg_connect)
         user_loader.load_users()
 
     @task(task_id="dm_restaurants_load")
-    def load_dm_restaurants(ds=None, **kwargs):
-        rest_loader = RestaurantLoader(dwh_pg_connect, settings_repository)
+    def load_dm_restaurants():
+        rest_loader = RestaurantLoader(dwh_pg_connect)
         rest_loader.load_restaurants()
 
 
     @task(task_id="dm_timestamps_load")
-    def load_dm_timestamps(ds=None, **kwargs):
-        ts_loader = TimestampLoader(dwh_pg_connect, settings_repository)
+    def load_dm_timestamps():
+        ts_loader = TimestampLoader(dwh_pg_connect)
         ts_loader.load_timestamps()
 
 
     @task(task_id="dm_products_load")
-    def load_dm_products(ds=None, **kwargs):
-        prod_loader = ProductLoader(dwh_pg_connect, settings_repository)
+    def load_dm_products():
+        prod_loader = ProductLoader(dwh_pg_connect)
         prod_loader.load_products()
 
 
     @task(task_id="dm_orders_load")
-    def load_dm_orders(ds=None, **kwargs):
-        order_loader = OrderLoader(dwh_pg_connect, settings_repository)
+    def load_dm_orders():
+        order_loader = OrderLoader(dwh_pg_connect)
         order_loader.load_orders()
 
 
     @task(task_id="fct_order_products_load")
-    def load_fct_order_products(ds=None, **kwargs):
-        fct_loader = FctProductsLoader(dwh_pg_connect, settings_repository)
+    def load_fct_order_products():
+        fct_loader = FctProductsLoader(dwh_pg_connect)
         fct_loader.load_product_facts()
 
 
@@ -75,5 +72,3 @@ with DAG(
     dm_users >> dm_orders
     dm_products >> fct_order_products
     dm_orders >> fct_order_products
-
-    #dm_users, dm_restaurants >> dm_products, dm_timestamps

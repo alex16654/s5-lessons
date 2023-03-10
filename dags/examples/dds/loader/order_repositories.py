@@ -45,15 +45,23 @@ class OrderDdsRepository:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                    INSERT INTO dds.dm_orders(order_key, restaurant_id, timestamp_id, user_id, order_status)
-                    VALUES (%(order_key)s, %(restaurant_id)s, %(timestamp_id)s, %(user_id)s, %(order_status)s)
+                    INSERT INTO dds.dm_orders(
+                        order_key, 
+                        restaurant_id, 
+                        timestamp_id, 
+                        user_id, 
+                        order_status)
+                    VALUES (%(order_key)s, 
+                        %(restaurant_id)s, 
+                        %(timestamp_id)s, 
+                        %(user_id)s, 
+                        %(order_status)s)
                     ON CONFLICT (order_key) DO UPDATE
                     SET 
                         restaurant_id = EXCLUDED.restaurant_id,
                         timestamp_id = EXCLUDED.timestamp_id,
                         user_id = EXCLUDED.user_id,
-                        order_status = EXCLUDED.order_status
-                    ;
+                        order_status = EXCLUDED.order_status;
                 """,
                 {
                     "order_key": order.order_key,

@@ -16,15 +16,16 @@ log = logging.getLogger(__name__)
     tags=['sprint5', 'stg', 'schema', 'ddl', 'example'],  # Теги, используются для фильтрации в интерфейсе Airflow.
     is_paused_upon_creation=True  # Остановлен/запущен при появлении. Сразу запущен.
 )
-def sprint5_example_stg_init_schema_dag():
+def init_stg_project_couriers_dag():
     # Создаем подключение к базе dwh.
     dwh_pg_connect = ConnectionBuilder.pg_conn("PG_WAREHOUSE_CONNECTION")
 
     # Забираем путь до каталога с SQL-файлами из переменных Airflow.
-    ddl_path = Variable.get("EXAMPLE_STG_DDL_FILES_PATH")
+    # /lessons/dags/examples/stg/init_schema_dag/ddl_project
+    ddl_path = Variable.get("PATH_TO_SQL_STG_SYSTEM_COURIERS")
 
     # Объявляем таск, который создает структуру таблиц.
-    @task(task_id="schema_init")
+    @task(task_id="stg_project_couriers")
     def schema_init():
         rest_loader = SchemaDdl(dwh_pg_connect, log)
         rest_loader.init_schema(ddl_path)
@@ -37,4 +38,4 @@ def sprint5_example_stg_init_schema_dag():
 
 
 # Вызываем функцию, описывающую даг.
-stg_init_schema_dag = sprint5_example_stg_init_schema_dag()  # noqa
+stg_init_schema_dag = init_stg_project_couriers_dag()  # noqa

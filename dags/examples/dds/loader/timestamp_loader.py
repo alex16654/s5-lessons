@@ -1,6 +1,6 @@
 import json
 from datetime import date, datetime, time
-from typing import List, Optional
+from typing import Optional
 from lib import PgConnect
 from psycopg import Connection
 from psycopg.rows import class_row
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from examples.dds.dds_settings_repository import DdsEtlSettingsRepository, EtlSetting
 
-from examples.dds.deployer.order_repositories import OrderJsonObj, OrderRawRepository
+from examples.dds.loader.order_repositories import OrderJsonObj, OrderRawRepository
 
 
 class TimestampDdsObj(BaseModel):
@@ -55,16 +55,16 @@ class TimestampLoader:
     WF_KEY = "timestamp_raw_to_dds_workflow"
     LAST_LOADED_ID_KEY = "last_loaded_order_id"
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw_orders = OrderRawRepository()
         self.dds = TimestampDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
     def parse_order_ts(self, order_raw: OrderJsonObj) -> TimestampDdsObj:
         order_json = json.loads(order_raw.object_value)
         dt = datetime.strptime(order_json['date'], "%Y-%m-%d %H:%M:%S")
-        t = TimestampDdsObj(id=0,
+        item = TimestampDdsObj(id=0,
                             ts=dt,
                             year=dt.year,
                             month=dt.month,
@@ -73,7 +73,7 @@ class TimestampLoader:
                             date=dt.date()
                             )
 
-        return t
+        return item
 
     def load_timestamps(self):
         with self.dwh.connection() as conn:

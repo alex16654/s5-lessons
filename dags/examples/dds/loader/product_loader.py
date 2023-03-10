@@ -6,7 +6,7 @@ from psycopg import Connection
 from psycopg.rows import class_row
 from pydantic import BaseModel
 
-from examples.dds.deployer.restaurant_loader import RestaurantDdsRepository, RestaurantJsonObj, RestaurantRawRepository
+from examples.dds.loader.restaurant_loader import RestaurantDdsRepository, RestaurantJsonObj, RestaurantRawRepository
 
 from examples.dds.dds_settings_repository import DdsEtlSettingsRepository, EtlSetting
 
@@ -80,12 +80,12 @@ class ProductLoader:
     WF_KEY = "menu_products_raw_to_dds_workflow"
     LAST_LOADED_ID_KEY = "last_loaded_id"
 
-    def __init__(self, pg: PgConnect, settings_repository: DdsEtlSettingsRepository) -> None:
+    def __init__(self, pg: PgConnect) -> None:
         self.dwh = pg
         self.raw = RestaurantRawRepository()
         self.dds_products = ProductDdsRepository()
         self.dds_restaurants = RestaurantDdsRepository()
-        self.settings_repository = settings_repository
+        self.settings_repository = DdsEtlSettingsRepository()
 
     def parse_restaurants_menu(self, restaurant_raw: RestaurantJsonObj, restaurant_version_id: int) -> List[ProductDdsObj]:
         res = []

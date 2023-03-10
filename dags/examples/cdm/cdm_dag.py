@@ -5,7 +5,7 @@ from airflow.decorators import dag, task
 from airflow.models.variable import Variable
 from lib import ConnectionBuilder
 
-from examples.cdm.deployer.settlement_report import SettlementReportLoader
+from examples.cdm.loader.settlement_report import SettlementLoader
 
 log = logging.getLogger(__name__)
 
@@ -21,11 +21,11 @@ with DAG(
 
     @task(task_id="cdm_load")
     def cdm_dag():
-        rest_loader = SettlementReportLoader(dwh_pg_connect)
-        rest_loader.load_report_by_days()
+        cdm_loader = SettlementLoader(dwh_pg_connect)
+        cdm_loader.load_report_by_days()
 
-    settlement_daily_report_load = cdm_dag()
+    settlement_load = cdm_dag()
 
-    settlement_daily_report_load
+    settlement_load
 
 
